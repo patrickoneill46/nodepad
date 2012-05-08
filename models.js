@@ -13,7 +13,8 @@ var mongoose = require('mongoose'),
 var Document = new Schema({
 	title: { type: String, index: true },
 	data: {type: String},
-	tags: {type: String}
+	tags: {type: String},
+	user_id: {type: String, index: true}
 });
 mongoose.model('Document', Document);
 
