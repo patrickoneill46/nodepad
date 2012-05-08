@@ -1,83 +1,81 @@
+var express = require('express'),
+    app = module.exports = express.createServer(),
+    mongoose = require('mongoose').Mongoose,
+    db,
+    Document;
 
-/**
- * Module dependencies.
- */
-
-var express = require('express')
-  , expresso = require('expresso')
-  , app = module.exports = express.createServer()
-  , routes = require('./routes')
-  , mongoose = require('mongoose')
-  //, db = mongoose.connect('mongodb://localhost/nodepad')
-  //, Document = require('./models.js').Document(db)
-  , db
-  , Document;
-  
- 
-  
-//var app = module.exports = express.createServer();
-
-// Configuration
-
-app.configure(function(){
+app.configure(function() {
   app.set('views', __dirname + '/views');
-  app.set('view engine', 'jade');
-  app.use(express.bodyParser());
+  app.use(express.bodyDecoder());
   app.use(express.methodOverride());
+  app.use(express.compiler({ src: __dirname + '/public', enable: ['less'] }));
   app.use(app.router);
-  app.use(express.static(__dirname + '/public'));
+  app.use(express.staticProvider(__dirname + '/public'));
 });
 
-app.configure('development', function(){
-  //app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
-<<<<<<< HEAD
-  app.use(express.logger({ format: ':method :url' }));
-=======
-  app.use(express.logger({format ':method :uri'}));
->>>>>>> 81622fd8deead0c0e6a36f11e8c225a0348285ac
+app.configure('development', function() {
+  app.use(express.logger({ format: ':method :uri' }));
   app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
   db = mongoose.connect('mongodb://localhost/nodepad-development');
 });
 
-app.configure('production', function(){
+app.configure('production', function() {
   app.use(express.logger());
-  app.use(express.errorHandler());
-  db = mongoose.connect('mongodb://localhost/nodepad-prodcution');
+  app.use(express.errorHandler()); 
+  db = mongoose.connect('mongodb://localhost/nodepad-production');
 });
 
 app.configure('test', function() {
+  app.use(express.logger());
   app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
   db = mongoose.connect('mongodb://localhost/nodepad-test');
 });
 
 app.Document = Document = require('./models.js').Document(db);
 
-// :format can be json or html
+app.get('/', function(req, res) {
+  res.redirect('/documents')
+});
+
+// Document list
 app.get('/documents.:format?', function(req, res) {
-  // Some kind of Mongo query/update
   Document.find().all(function(documents) {
     switch (req.params.format) {
-      // When json, generate suitable data
       case 'json':
         res.send(documents.map(function(d) {
           return d.__doc;
         }));
       break;
 
-      // Else render a database template (this isn't ready yet)
       default:
-        res.render('documents/index.jade');
+        res.render('documents/index.jade', {
+          locals: { documents: documents }
+        });
     }
+  });
+});
+
+app.get('/documents/:id.:format?/edit', function(req, res) {
+  Document.findById(req.params.id, function(d) {
+    res.render('documents/edit.jade', {
+      locals: { d: d }
+    });
+  });
+});
+
+app.get('/documents/new', function(req, res) {
+  res.render('documents/new.jade', {
+    locals: { d: new Document() }
   });
 });
 
 // Create document 
 app.post('/documents.:format?', function(req, res) {
-  var document = new Document(req.body['document']);
-  document.save(function() {
+  var d = new Document(req.body.document);
+  d.save(function() {
     switch (req.params.format) {
       case 'json':
-        res.send(document.__doc);
+        res.send(d.__doc);
        break;
 
        default:
@@ -88,20 +86,55 @@ app.post('/documents.:format?', function(req, res) {
 
 // Read document
 app.get('/documents/:id.:format?', function(req, res) {
+  Document.findById(req.params.id, function(d) {
+    switch (req.params.format) {
+      case 'json':
+        res.send(d.__doc);
+      break;
+
+      default:
+        res.render('documents/show.jade', {
+          locals: { d: d }
+        });
+    }
+  });
 });
 
 // Update document
 app.put('/documents/:id.:format?', function(req, res) {
+  Document.findById(req.body.document.id, function(d) {
+    d.title = req.body.document.title;
+    d.data = req.body.document.data;
+    d.save(function() {
+      switch (req.params.format) {
+        case 'json':
+          res.send(d.__doc);
+         break;
+
+         default:
+          res.redirect('/documents');
+      }
+    });
+  });
 });
 
 // Delete document
 app.del('/documents/:id.:format?', function(req, res) {
+  Document.findById(req.params.id, function(d) {
+    d.remove(function() {
+      switch (req.params.format) {
+        case 'json':
+          res.send('true');
+         break;
+
+         default:
+          res.redirect('/documents');
+      } 
+    });
+  });
 });
 
-
-// Routes
-
-app.get('/', routes.index);
-
-app.listen(3000);
-console.log("Express server listening on port %d in %s mode", app.address().port, app.settings.env);
+if (!module.parent) {
+  app.listen(3000);
+  console.log("Express server listening on port %d, environment: %s", app.address().port, app.settings.env)
+}
