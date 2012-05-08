@@ -5,8 +5,12 @@
 process.env.NODE_ENV = 'test';
 
 var app = require('../app'),
+<<<<<<< HEAD
     lastID = '',
 	assert = require('assert');
+=======
+    lastID = '';
+>>>>>>> 81622fd8deead0c0e6a36f11e8c225a0348285ac
 
 module.exports = {
   'POST /documents.json': function(assert) {

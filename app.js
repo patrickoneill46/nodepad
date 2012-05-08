@@ -30,7 +30,11 @@ app.configure(function(){
 
 app.configure('development', function(){
   //app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
+<<<<<<< HEAD
   app.use(express.logger({ format: ':method :url' }));
+=======
+  app.use(express.logger({format ':method :uri'}));
+>>>>>>> 81622fd8deead0c0e6a36f11e8c225a0348285ac
   app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
   db = mongoose.connect('mongodb://localhost/nodepad-development');
 });
